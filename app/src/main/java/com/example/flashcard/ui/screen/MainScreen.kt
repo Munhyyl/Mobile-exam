@@ -4,14 +4,9 @@ import android.content.res.Configuration
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,8 +17,6 @@ import com.example.flashcard.data.Flashcard
 import com.example.flashcard.data.FlashcardSettings
 import com.example.flashcard.view.FlashcardViewModel
 import kotlinx.coroutines.launch
-
-
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -71,47 +64,77 @@ fun MainScreen(viewModel: FlashcardViewModel, navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             if (currentFlashcard != null) {
-                var showMongolian by remember { mutableStateOf(false) }
+                var showForeign by remember { mutableStateOf(settings.showForeign) }
+                var showMongolian by remember { mutableStateOf(settings.showMongolian) }
 
-                // Foreign Word
-                if (settings.showForeign) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                            .combinedClickable(
-                                onClick = {
-                                    if (!settings.showMongolian) showMongolian = !showMongolian
-                                },
-                                onLongClick = { navController.navigate("add_edit/${currentFlashcard?.id}") }
-                            )
-                    ) {
-                        Text(
-                            text = currentFlashcard!!.foreignWord,
-                            style = MaterialTheme.typography.headlineLarge,
-                            modifier = Modifier.align(Alignment.Center)
+                // Хоёр үг хоёулаа харагдахгүй үед товшилтоор ээлжлэн харуулах
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .combinedClickable(
+                            onClick = {
+                                if (!settings.showForeign && !settings.showMongolian) {
+                                    if (!showForeign && !showMongolian) {
+                                        showForeign = true // Эхний товшилтоор гадаад үгийг харуул
+                                    } else if (showForeign && !showMongolian) {
+                                        showForeign = false
+                                        showMongolian = true // Хоёр дахь товшилтоор монгол үгийг харуул
+                                    } else {
+                                        showForeign = false
+                                        showMongolian = false // Гурав дахь товшилтоор хоёуланг нуу
+                                    }
+                                } else if (!settings.showForeign && settings.showMongolian) {
+                                    showForeign = !showForeign // Гадаад үгийг түр харуулах/нуух
+                                } else if (settings.showForeign && !settings.showMongolian) {
+                                    showMongolian = !showMongolian // Монгол үгийг түр харуулах/нуух
+                                }
+                            },
+                            onLongClick = { navController.navigate("add_edit/${currentFlashcard?.id}") }
                         )
-                    }
-                }
-
-                // Mongolian Word
-                if (settings.showMongolian || showMongolian) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                            .combinedClickable(
-                                onClick = {
-                                    if (!settings.showMongolian) showMongolian = !showMongolian
-                                },
-                                onLongClick = { navController.navigate("add_edit/${currentFlashcard?.id}") }
+                ) {
+                    when {
+                        // Хоёр үг хоёулаа харагдахгүй, анхны төлөв
+                        !showForeign && !showMongolian -> {
+                            Text(
+                                text = "Tap to reveal",
+                                style = MaterialTheme.typography.headlineLarge,
+                                modifier = Modifier.align(Alignment.Center)
                             )
-                    ) {
-                        Text(
-                            text = currentFlashcard!!.mongolianWord,
-                            style = MaterialTheme.typography.headlineLarge,
-                            modifier = Modifier.align(Alignment.Center)
-                        )
+                        }
+                        // Зөвхөн гадаад үг харагдаж байна
+                        showForeign && !showMongolian -> {
+                            Text(
+                                text = currentFlashcard!!.foreignWord,
+                                style = MaterialTheme.typography.headlineLarge,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        }
+                        // Зөвхөн монгол үг харагдаж байна
+                        !showForeign && showMongolian -> {
+                            Text(
+                                text = currentFlashcard!!.mongolianWord,
+                                style = MaterialTheme.typography.headlineLarge,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        }
+                        // Хоёр үг хоёулаа харагдаж байна
+                        showForeign && showMongolian -> {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = currentFlashcard!!.foreignWord,
+                                    style = MaterialTheme.typography.headlineLarge
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = currentFlashcard!!.mongolianWord,
+                                    style = MaterialTheme.typography.headlineLarge
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -182,5 +205,4 @@ fun MainScreen(viewModel: FlashcardViewModel, navController: NavController) {
             }
         )
     }
-
 }

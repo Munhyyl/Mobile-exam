@@ -8,5 +8,5 @@ data class Flashcard(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val mongolianWord: String,
     val foreignWord: String,
-    val lastReviewed: Long = System.currentTimeMillis()
+    val creationDate: Long = System.currentTimeMillis()
 )

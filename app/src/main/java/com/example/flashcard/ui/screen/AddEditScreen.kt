@@ -12,6 +12,7 @@ import androidx.navigation.NavController
 import com.example.flashcard.data.Flashcard
 import com.example.flashcard.view.FlashcardViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -27,16 +28,20 @@ fun AddEditScreen(
     var shouldNavigateBack by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
+    // Flow-оос утгыг collect хийж авах
     val currentFlashcard by produceState<Flashcard?>(initialValue = null) {
         flashcardId?.let { id ->
             if (id != -1) {
-                withContext(Dispatchers.IO) {
-                    value = viewModel.getFlashcardById(id)
+                viewModel.getFlashcardById(id).collectLatest { flashcard ->
+                    withContext(Dispatchers.Main) {
+                        value = flashcard
+                    }
                 }
             }
         }
     }
 
+    // CurrentFlashcard өөрчлөгдөхөд утгыг шинэчилнэ
     LaunchedEffect(currentFlashcard) {
         currentFlashcard?.let {
             mongolianWord = it.mongolianWord

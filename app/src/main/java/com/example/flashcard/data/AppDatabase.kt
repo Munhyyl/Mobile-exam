@@ -29,5 +29,5 @@ interface FlashcardDao {
     fun getAllFlashcards(): Flow<List<Flashcard>>
 
     @Query("SELECT * FROM flashcard WHERE id = :id")
-    suspend fun getFlashcardById(id: Int): Flashcard?
+    fun getFlashcardById(id: Int): Flow<Flashcard?>
 }

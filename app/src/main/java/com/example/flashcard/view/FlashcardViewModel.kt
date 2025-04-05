@@ -13,58 +13,65 @@ class FlashcardViewModel(
     private val repository: FlashcardRepository,
     private val settingsDataStore: SettingsDataStore
 ) : ViewModel() {
-    val allFlashcards = repository.allFlashcards
-    val settings = settingsDataStore.settingsFlow
 
-    private var _currentFlashcardIndex = 0
-    val currentFlashcardIndex: Int
-        get() = _currentFlashcardIndex
+    val allFlashcards: StateFlow<List<Flashcard>> = repository.getAllFlashcards()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val combinedFlashcardsAndSettings: StateFlow<Pair<List<Flashcard>, FlashcardSettings>> = allFlashcards.combine(settings) { flashcards, settings ->
-        flashcards to settings
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList<Flashcard>() to FlashcardSettings()
-    )
+    val settings: StateFlow<FlashcardSettings> = settingsDataStore.settingsFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), FlashcardSettings())
+
+    private var _currentFlashcardIndex = MutableStateFlow(0)
+    val currentFlashcardIndex: StateFlow<Int> = _currentFlashcardIndex.asStateFlow()
+
+    val combinedFlashcardsAndSettings: StateFlow<Pair<List<Flashcard>, FlashcardSettings>> =
+        allFlashcards.combine(settings) { flashcards, settings ->
+            flashcards to settings
+        }.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            emptyList<Flashcard>() to FlashcardSettings()
+        )
 
     init {
         viewModelScope.launch {
             allFlashcards.collect { flashcards ->
-                if (flashcards.isNotEmpty()) {
-                    _currentFlashcardIndex = 0
-                } else {
-                    _currentFlashcardIndex = -1
+                if (flashcards.isEmpty()) {
+                    _currentFlashcardIndex.value = -1
+                } else if (_currentFlashcardIndex.value !in flashcards.indices) {
+                    _currentFlashcardIndex.value = 0
                 }
             }
         }
     }
 
-    fun getCurrentFlashcard(): Flashcard? {
-        val (flashcards, _) = combinedFlashcardsAndSettings.value
-        return if (flashcards.isNotEmpty() && _currentFlashcardIndex in flashcards.indices) {
-            flashcards[_currentFlashcardIndex]
+    fun getCurrentFlashcard(): Flow<Flashcard?> = combinedFlashcardsAndSettings.map { (flashcards, _) ->
+        if (flashcards.isNotEmpty() && _currentFlashcardIndex.value in flashcards.indices) {
+            flashcards[_currentFlashcardIndex.value]
         } else {
             null
         }
     }
 
     fun nextFlashcard() {
-        val (flashcards, _) = combinedFlashcardsAndSettings.value
+        val flashcards = allFlashcards.value
+        println("Next clicked, Flashcards size: ${flashcards.size}, Current Index: ${_currentFlashcardIndex.value}")
         if (flashcards.isNotEmpty()) {
-            _currentFlashcardIndex = (_currentFlashcardIndex + 1) % flashcards.size
+            _currentFlashcardIndex.value = (_currentFlashcardIndex.value + 1) % flashcards.size
+            println("New Index: ${_currentFlashcardIndex.value}")
         }
     }
 
     fun previousFlashcard() {
-        val (flashcards, _) = combinedFlashcardsAndSettings.value
+        val flashcards = allFlashcards.value
+        println("Previous clicked, Flashcards size: ${flashcards.size}, Current Index: ${_currentFlashcardIndex.value}")
         if (flashcards.isNotEmpty()) {
-            _currentFlashcardIndex = if (_currentFlashcardIndex - 1 < 0) {
+            _currentFlashcardIndex.value = if (_currentFlashcardIndex.value - 1 < 0) {
                 flashcards.size - 1
             } else {
-                _currentFlashcardIndex - 1
+                _currentFlashcardIndex.value - 1
             }
         }
+        println("New Index: ${_currentFlashcardIndex.value}")
     }
 
     suspend fun insertFlashcard(flashcard: Flashcard) = repository.insert(flashcard)
@@ -77,5 +84,5 @@ class FlashcardViewModel(
         settingsDataStore.updateSettings(showMongolian, showForeign)
     }
 
-    suspend fun getFlashcardById(id: Int): Flashcard? = repository.getFlashcardById(id)
+    fun getFlashcardById(id: Int): Flow<Flashcard?> = repository.getFlashcardById(id)
 }

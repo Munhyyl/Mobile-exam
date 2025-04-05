@@ -21,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.app.NotificationCompat
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -111,8 +112,36 @@ fun FlashcardApp(viewModel: FlashcardViewModel) {
 
     // Schedule daily notification
     LaunchedEffect(Unit) {
+        sendTestNotification(context)
         scheduleDailyNotification(context)
+        
     }
+}
+
+fun sendTestNotification(context: Context) {
+    val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    val intent = Intent(context, MainActivity::class.java).apply {
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        putExtra("FROM_NOTIFICATION", true)
+    }
+    val pendingIntent = PendingIntent.getActivity(
+        context,
+        0,
+        intent,
+        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+    )
+
+    val notification = NotificationCompat.Builder(context, "flashcard_channel")
+        .setSmallIcon(R.drawable.ic_notification) // Байхгүй бол drawable-д нэмэх хэрэгтэй
+        .setContentTitle("Flashcard Test Notification")
+        .setContentText("Энэ бол UI дээр шууд харагдах notification.")
+        .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+        .setContentIntent(pendingIntent)
+        .setAutoCancel(true)
+        .build()
+
+    notificationManager.notify(100, notification)
+
 }
 
 private fun scheduleDailyNotification(context: Context) {
@@ -125,7 +154,7 @@ private fun scheduleDailyNotification(context: Context) {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 
-    // Set alarm to trigger at 9 AM every day
+
     val calendar = Calendar.getInstance().apply {
         timeInMillis = System.currentTimeMillis()
         set(Calendar.HOUR_OF_DAY, 9)
@@ -133,15 +162,37 @@ private fun scheduleDailyNotification(context: Context) {
         set(Calendar.SECOND, 0)
     }
 
-    // If it's already past 9 AM, set for next day
+
     if (calendar.timeInMillis <= System.currentTimeMillis()) {
         calendar.add(Calendar.DAY_OF_YEAR, 1)
     }
 
-    alarmManager.setRepeating(
-        AlarmManager.RTC_WAKEUP,
-        calendar.timeInMillis,
-        AlarmManager.INTERVAL_DAY,
-        pendingIntent
-    )
+    // Android 12+ дээр ажиллах заримдаа EXACT alarm эрх шаардагдана
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (alarmManager.canScheduleExactAlarms()) {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                pendingIntent
+            )
+        } else {
+            // Шаардлагатай бол хэрэглэгчид мэдэгдэл
+            alarmManager.setAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                pendingIntent
+            )
+        }
+    } else {
+        // Android 12-оос доош
+        alarmManager.setRepeating(
+            AlarmManager.RTC_WAKEUP,
+            calendar.timeInMillis,
+            AlarmManager.INTERVAL_DAY,
+            pendingIntent
+        )
+    }
+    
+
+
 }

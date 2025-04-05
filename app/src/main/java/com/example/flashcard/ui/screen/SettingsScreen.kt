@@ -15,6 +15,7 @@ import com.example.flashcard.data.FlashcardSettings
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(viewModel: FlashcardViewModel, navController: NavController) {

@@ -23,6 +23,8 @@ import com.example.flashcard.data.FlashcardSettings
 import com.example.flashcard.view.FlashcardViewModel
 import kotlinx.coroutines.launch
 
+
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(viewModel: FlashcardViewModel, navController: NavController) {
@@ -99,7 +101,9 @@ fun MainScreen(viewModel: FlashcardViewModel, navController: NavController) {
                             .fillMaxWidth()
                             .padding(16.dp)
                             .combinedClickable(
-                                onClick = { showMongolian = !showMongolian },
+                                onClick = {
+                                    if (!settings.showMongolian) showMongolian = !showMongolian
+                                },
                                 onLongClick = { navController.navigate("add_edit/${currentFlashcard?.id}") }
                             )
                     ) {
@@ -136,6 +140,7 @@ fun MainScreen(viewModel: FlashcardViewModel, navController: NavController) {
                     ) {
                         Icon(Icons.Default.Edit, contentDescription = "Edit Flashcard")
                     }
+
                     IconButton(
                         onClick = { viewModel.nextFlashcard() },
                         enabled = flashcards.isNotEmpty()
@@ -177,4 +182,5 @@ fun MainScreen(viewModel: FlashcardViewModel, navController: NavController) {
             }
         )
     }
+
 }
